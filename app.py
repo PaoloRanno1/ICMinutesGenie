@@ -54,13 +54,13 @@ def process_pdf(analyzer, uploaded_file):
         
         if not results:
             st.error("❌ No content could be extracted from the PDF.")
-            return None, None
+            return None, None, None
         
         # Check if analysis was successful
         successful_pages = [r for r in results if r.get("status") == "success"]
         if not successful_pages:
             st.error("❌ Failed to analyze any pages in the PDF.")
-            return None, None
+            return None, None, None
         
         progress_bar.progress(60)
         status_text.text("🤖 Generating IC Minutes...")
@@ -70,7 +70,7 @@ def process_pdf(analyzer, uploaded_file):
         
         if not ic_minutes:
             st.error("❌ Failed to generate IC Minutes.")
-            return None, None
+            return None, None, None
         
         progress_bar.progress(80)
         status_text.text("📝 Creating Word document...")
@@ -84,12 +84,12 @@ def process_pdf(analyzer, uploaded_file):
         progress_bar.progress(100)
         status_text.text("✅ IC Minutes generated successfully!")
         
-        return ic_minutes, docx_path
+        return ic_minutes, docx_path, results
         
     except Exception as e:
         st.error(f"❌ Error processing PDF: {str(e)}")
         st.error("Please check the PDF format and try again.")
-        return None, None
+        return None, None, None
     
     finally:
         # Clean up temporary PDF file
@@ -155,13 +155,14 @@ def main():
             # Process button
             if st.button("🚀 Generate IC Minutes", type="primary"):
                 with st.spinner("Processing your document..."):
-                    ic_minutes, docx_path = process_pdf(analyzer, uploaded_file)
+                    ic_minutes, docx_path, analysis_results = process_pdf(analyzer, uploaded_file)
                     
                     if ic_minutes and docx_path:
                         # Store results in session state
                         st.session_state.ic_minutes = ic_minutes
                         st.session_state.docx_path = docx_path
                         st.session_state.original_filename = uploaded_file.name
+                        st.session_state.analysis_results = analysis_results
                         st.rerun()
     
     with col2:
@@ -202,6 +203,25 @@ def main():
             # Show word count
             word_count = len(st.session_state.ic_minutes.split())
             st.caption(f"📊 Word count: {word_count} words")
+            
+            # Add button to show raw analysis results
+            st.markdown("---")
+            if st.button("🔍 Show Raw Analysis Results", help="View detailed page-by-page analysis from AI"):
+                if hasattr(st.session_state, 'analysis_results') and st.session_state.analysis_results:
+                    with st.expander("📄 Raw Analysis Results", expanded=True):
+                        for result in st.session_state.analysis_results:
+                            page_num = result.get('page_number', 'Unknown')
+                            status = result.get('status', 'unknown')
+                            content = result.get('content', 'No content')
+                            
+                            if status == 'success':
+                                st.markdown(f"### Page {page_num}")
+                                st.markdown(content)
+                                st.markdown("---")
+                            else:
+                                st.error(f"**Page {page_num}**: {content}")
+                else:
+                    st.warning("No analysis results available. Please process a PDF first.")
             
         else:
             st.info("👆 Upload a PDF file and click 'Generate IC Minutes' to see results here.")
