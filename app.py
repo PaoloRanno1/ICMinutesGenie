@@ -98,8 +98,64 @@ def process_pdf(analyzer, uploaded_file):
         except:
             pass
 
+def check_password():
+    """Returns True if the user has entered the correct password."""
+    
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == "StradaLegal2025":
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show password input
+        st.title("🔐 Strada Partners Access")
+        st.markdown("**Please enter the access password to continue**")
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.markdown("---")
+        st.markdown(
+            "<div style='text-align: center; color: #666; margin-top: 50px;'>"
+            "Authorized personnel only | Strada Partners"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password incorrect
+        st.title("🔐 Strada Partners Access")
+        st.markdown("**Please enter the access password to continue**")
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("❌ Incorrect password. Please try again.")
+        st.markdown("---")
+        st.markdown(
+            "<div style='text-align: center; color: #666; margin-top: 50px;'>"
+            "Authorized personnel only | Strada Partners"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        return False
+    else:
+        # Password correct
+        return True
+
 def main():
     """Main Streamlit application"""
+    
+    # Check password before showing main app
+    if not check_password():
+        return
     
     # Header
     st.title("📄 IC Minutes Generator")
